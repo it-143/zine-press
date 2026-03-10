@@ -64,13 +64,20 @@ body { overflow: hidden; background: #050505; font-family: 'Courier New', monosp
   transition: background 0.5s ease;
 }
 #reader.open { display: flex; background: rgba(0,0,0,0.92); }
-#reader-page {
-  max-width: 85vmin; max-height: 70vh; object-fit: contain;
-  image-rendering: auto; border: 3px solid rgba(255,255,255,0.1);
-  box-shadow: 0 0 60px rgba(0,0,0,0.8); opacity: 0; transform: scale(0.8);
+#reader-spread {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  max-width: 90vw; max-height: 72vh;
+  opacity: 0; transform: scale(0.8);
   transition: opacity 0.4s ease, transform 0.4s ease;
 }
-#reader.open #reader-page { opacity: 1; transform: scale(1); }
+#reader.open #reader-spread { opacity: 1; transform: scale(1); }
+.reader-page-img {
+  max-height: 72vh; object-fit: contain; image-rendering: auto;
+  border: 2px solid rgba(255,255,255,0.08);
+  box-shadow: 0 0 40px rgba(0,0,0,0.6);
+}
+#reader-spread.single .reader-page-img { max-width: 45vw; }
+#reader-spread.spread .reader-page-img { max-width: 42vw; }
 #reader-close {
   position: absolute; top: 20px; right: 28px; background: none; border: none;
   color: #fff; font-size: 32px; cursor: pointer; font-family: 'Courier New', monospace;
@@ -102,7 +109,9 @@ body { overflow: hidden; background: #050505; font-family: 'Courier New', monosp
   #info-title { font-size: 16px; letter-spacing: 2px; }
   #info-sub { font-size: 9px; letter-spacing: 2px; }
   #info-box { padding: 14px 20px; min-width: 200px; }
-  #reader-page { max-width: 92vw; max-height: 65vh; }
+  #reader-spread { flex-direction: column; gap: 2px; }
+  #reader-spread.single .reader-page-img,
+  #reader-spread.spread .reader-page-img { max-width: 90vw; max-height: 45vh; }
   #reader-close { top: 10px; right: 14px; font-size: 26px; }
   #reader-title { font-size: 11px; letter-spacing: 2px; }
   .reader-arrow { width: 40px; height: 40px; font-size: 18px; }
