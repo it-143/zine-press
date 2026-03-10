@@ -43,11 +43,44 @@
     transform: translate(16px, -20px);
   }
   #cursor-label.visible { opacity: 1; }
+
+  #nav-bar {
+    position: fixed; top: 24px; left: 28px; z-index: 20;
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'Courier New', monospace;
+  }
+  #nav-bar span {
+    color: rgba(255,255,255,0.5); font-size: 14px; letter-spacing: 1px;
+  }
+  #nav-bar select {
+    font-family: 'Courier New', monospace; font-size: 14px;
+    background: transparent; color: rgba(255,255,255,0.5);
+    border: 1px solid rgba(255,255,255,0.15); padding: 4px 8px;
+    cursor: pointer; outline: none; appearance: auto;
+    -webkit-appearance: auto;
+  }
+  #nav-bar select option {
+    background: #111; color: #ccc;
+  }
 </style>
 </head>
 <body>
 
 <canvas id="c"></canvas>
+
+<div id="nav-bar">
+  <span>DEEMS is</span>
+  <select id="nav-select">
+    <option value="" selected disabled>select</option>
+    <option value="zines.html">DEEMS</option>
+    <option value="discover.html">Discover</option>
+    <option value="envision.html">Envision</option>
+    <option value="experiment.html">Experiment</option>
+    <option value="metaphor.html">Metaphor</option>
+    <option value="synthesis.html">Synthesis</option>
+    <option value="contact.html">Contact</option>
+  </select>
+</div>
 
 <div id="zoom-overlay">
   <div id="zoom-word"></div>
@@ -271,6 +304,11 @@ function draw(){
   time += 0.016;
   requestAnimationFrame(draw);
 }
+
+// Nav dropdown
+document.getElementById('nav-select').addEventListener('change', function(e){
+  if(e.target.value) window.location.href = e.target.value;
+});
 
 // Init
 ctx.fillStyle = '#050505';
