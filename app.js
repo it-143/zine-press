@@ -1,5 +1,15 @@
 const ZINES = [
-  { id:1, title:"DEEMS Vol.1", subtitle:"Volume 01", color1:"#3bbfa0", color2:"#d45b3e", accent:"#e8f0d0", frontImg:F1, backImg:B1 },
+  { id:1, title:"DEEMS Vol.1", subtitle:"Volume 01", color1:"#3bbfa0", color2:"#d45b3e", accent:"#e8f0d0", frontImg:F1, backImg:B1,
+    pages: [
+      'images/vol1/page1.jpg','images/vol1/page2.jpg','images/vol1/page3.jpg',
+      'images/vol1/page4.jpg','images/vol1/page5.jpg','images/vol1/page6.jpg',
+      'images/vol1/page7.jpg','images/vol1/page8.jpg','images/vol1/page9.jpg',
+      'images/vol1/page10.jpg','images/vol1/page11.jpg','images/vol1/page12.jpg',
+      'images/vol1/page13.jpg','images/vol1/page14.jpg','images/vol1/page15.jpg',
+      'images/vol1/page16.jpg','images/vol1/page17.jpg','images/vol1/page18.jpg',
+      'images/vol1/page19.jpg','images/vol1/page20.jpg','images/vol1/page21.jpg',
+      'images/vol1/page22.jpg'
+    ] },
   { id:2, title:"DEEMS Vol.2", subtitle:"Volume 02", color1:"#1a1a1a", color2:"#444", accent:"#ffffff", frontImg:F2, backImg:B2 },
   { id:3, title:"DEEMS Vol.3", subtitle:"Volume 03", color1:"#ff1a5c", color2:"#cc0044", accent:"#ffe0eb", frontImg:F3, backImg:B3 },
   { id:4, title:"DEEMS Vol.4", subtitle:"Volume 04", color1:"#e04020", color2:"#661a00", accent:"#ffddd4", frontImg:F4, backImg:B4 },
@@ -269,7 +279,7 @@ function makeEdge(){
   var readerIdx = 0;
 
   function openReader(zine){
-    readerPages = [zine.frontImg, zine.backImg];
+    readerPages = zine.pages || [zine.frontImg, zine.backImg];
     // You can add interior pages here later:
     // readerPages = [zine.frontImg, zine.page1, zine.page2, ..., zine.backImg];
     readerIdx = 0;
