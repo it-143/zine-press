@@ -137,30 +137,45 @@ function makeEdge(){
   var rl = new THREE.DirectionalLight(0x8888ff, 0.3);
   rl.position.set(-3, 1, -2); scene.add(rl);
 
-  // 3x3 grid
-  var COLS = 3, ROWS = 3;
+  // Responsive grid - 2 cols on mobile, 3 on desktop
   var groups = [];
+
+  function getGridConfig(){
+    var w = window.innerWidth;
+    if(w < 600) return { cols: 2, rows: 5 }; // 2x5 = 10 slots for 9 zines
+    return { cols: 3, rows: 3 };
+  }
 
   function getLayout(){
     var w = window.innerWidth, h = window.innerHeight, aspect = w/h;
+    var grid = getGridConfig();
     var sx, sy, camZ, sc;
-    if(w < 500)       { sx=1.8; sy=2.6; camZ=12; sc=0.65; }
-    else if(w < 768)  { sx=2.2; sy=2.8; camZ=10; sc=0.75; }
-    else if(w < 1100) { sx=2.6; sy=3.0; camZ=9;  sc=0.85; }
-    else              { sx=3.0; sy=3.0; camZ=8.5; sc=1.0;  }
-    if(aspect < 0.7)      { camZ += 5; sc *= 0.8; }
-    else if(aspect < 1.0) { camZ += 2; }
-    return { sx:sx, sy:sy, camZ:camZ, sc:sc };
+    if(grid.cols === 2){
+      // Mobile: 2 columns, bigger zines
+      sx = 2.4; sy = 2.8; camZ = 13; sc = 0.85;
+      if(aspect < 0.55) { camZ = 15; }
+      else if(aspect < 0.7) { camZ = 14; }
+    } else {
+      // Desktop: 3 columns
+      if(w < 768)       { sx=2.2; sy=2.8; camZ=10; sc=0.75; }
+      else if(w < 1100) { sx=2.6; sy=3.0; camZ=9;  sc=0.85; }
+      else              { sx=3.0; sy=3.0; camZ=8.5; sc=1.0;  }
+      if(aspect < 0.7)      { camZ += 5; sc *= 0.8; }
+      else if(aspect < 1.0) { camZ += 2; }
+    }
+    return { sx:sx, sy:sy, camZ:camZ, sc:sc, cols:grid.cols, rows:grid.rows };
   }
 
   function layoutZines(){
     var lay = getLayout();
     camera.position.set(0, 0, lay.camZ);
     camera.lookAt(0, 0, 0);
+    var cols = lay.cols;
+    var actualRows = Math.ceil(groups.length / cols);
     for(var i = 0; i < groups.length; i++){
-      var col = i % COLS, row = Math.floor(i / COLS);
-      var ox = -(COLS-1) * lay.sx / 2;
-      var oy = (ROWS-1) * lay.sy / 2;
+      var col = i % cols, row = Math.floor(i / cols);
+      var ox = -(cols-1) * lay.sx / 2;
+      var oy = (actualRows-1) * lay.sy / 2;
       groups[i].position.x = ox + col * lay.sx;
       groups[i].position.y = oy - row * lay.sy;
       groups[i].position.z = 0;
@@ -216,8 +231,10 @@ function makeEdge(){
     var visH = 2 * Math.tan(fovRad / 2) * lay.camZ;
     var visW = visH * camera.aspect;
     var pxPerUnit = rect.width / visW;
-    var zw = 1.4 * lay.sc * pxPerUnit * 0.6; // slightly generous hit area
-    var zh = 1.95 * lay.sc * pxPerUnit * 0.6;
+    // More generous hit area on mobile
+    var hitMult = (window.innerWidth < 600) ? 0.9 : 0.6;
+    var zw = 1.4 * lay.sc * pxPerUnit * hitMult;
+    var zh = 1.95 * lay.sc * pxPerUnit * hitMult;
     return { cx: sx, cy: sy, hw: zw, hh: zh };
   }
 
@@ -225,13 +242,21 @@ function makeEdge(){
     var rect = cvs.getBoundingClientRect();
     var mx = clientX - rect.left;
     var my = clientY - rect.top;
+    var bestDist = Infinity;
+    var bestZine = null;
     for(var i = 0; i < groups.length; i++){
       var b = getZineScreenBounds(groups[i]);
-      if(Math.abs(mx - b.cx) < b.hw && Math.abs(my - b.cy) < b.hh){
-        return groups[i].userData.zine;
+      var dx = Math.abs(mx - b.cx);
+      var dy = Math.abs(my - b.cy);
+      if(dx < b.hw && dy < b.hh){
+        var dist = dx*dx + dy*dy;
+        if(dist < bestDist){
+          bestDist = dist;
+          bestZine = groups[i].userData.zine;
+        }
       }
     }
-    return null;
+    return bestZine;
   }
 
   function updateUI(){
@@ -268,6 +293,18 @@ function makeEdge(){
     }
   });
 
+  // Touch support for mobile
+  window.addEventListener('touchend', function(e){
+    if(readerOpen) return;
+    if(e.changedTouches.length === 0) return;
+    var touch = e.changedTouches[0];
+    var clicked = hitTest(touch.clientX, touch.clientY);
+    if(clicked){
+      e.preventDefault();
+      openReader(clicked);
+    }
+  }, { passive: false });
+
   // ==================== READER (SPREAD VIEW) ====================
   var reader = document.getElementById('reader');
   var readerSpread = document.getElementById('reader-spread');
@@ -285,21 +322,22 @@ function makeEdge(){
   function buildSpreads(pages){
     var s = [];
     if(pages.length === 0) return s;
-    // First page (front cover) is always single
+    var isMobile = (window.innerWidth < 600);
+    if(isMobile){
+      // Single page per view on mobile
+      for(var i = 0; i < pages.length; i++){
+        s.push([i]);
+      }
+      return s;
+    }
+    // Desktop: first page single, then pairs
     s.push([0]);
     var i = 1;
     while(i < pages.length){
       if(i + 1 < pages.length){
-        // Last page (back cover) can be single
-        if(i + 1 === pages.length - 1){
-          s.push([i, i+1]);
-          i += 2;
-        } else {
-          s.push([i, i+1]);
-          i += 2;
-        }
+        s.push([i, i+1]);
+        i += 2;
       } else {
-        // Odd page out at the end
         s.push([i]);
         i++;
       }
@@ -384,6 +422,19 @@ function makeEdge(){
     if(e.target === reader) closeReader();
   });
 
+  // Touch: swipe left/right to flip pages in reader
+  var touchStartX = 0;
+  reader.addEventListener('touchstart', function(e){
+    touchStartX = e.changedTouches[0].clientX;
+  }, { passive: true });
+  reader.addEventListener('touchend', function(e){
+    var dx = e.changedTouches[0].clientX - touchStartX;
+    if(Math.abs(dx) > 50){
+      if(dx < 0 && spreadIdx < spreads.length - 1){ spreadIdx++; showSpread(); }
+      if(dx > 0 && spreadIdx > 0){ spreadIdx--; showSpread(); }
+    }
+  }, { passive: true });
+
   function closeReader(){
     reader.classList.remove('open');
     readerOpen = false;
@@ -402,10 +453,12 @@ function makeEdge(){
   function animate(){
     frame++;
     var lay = getLayout();
+    var cols = lay.cols;
+    var actualRows = Math.ceil(groups.length / cols);
     for(var i = 0; i < groups.length; i++){
       var g = groups[i];
-      var row = Math.floor(i / COLS);
-      var baseY = (ROWS-1)*lay.sy/2 - row*lay.sy;
+      var row = Math.floor(i / cols);
+      var baseY = (actualRows-1)*lay.sy/2 - row*lay.sy;
       g.position.y = baseY + Math.sin(frame*0.015 + i*1.2) * 0.12;
       g.rotation.y += g.userData.rotSpeed;
       g.rotation.x = Math.sin(frame*0.01 + i) * 0.06;
