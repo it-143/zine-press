@@ -1,6 +1,7 @@
 const ZINES = [
   { id:1, title:"DEEMS Vol.1", subtitle:"Volume 01", color1:"#3bbfa0", color2:"#d45b3e", accent:"#e8f0d0", frontImg:F1, backImg:B1,
     pages: [
+      'images/vol1/front.jpg',
       'images/vol1/page1.jpg','images/vol1/page2.jpg','images/vol1/page3.jpg',
       'images/vol1/page4.jpg','images/vol1/page5.jpg','images/vol1/page6.jpg',
       'images/vol1/page7.jpg','images/vol1/page8.jpg','images/vol1/page9.jpg',
@@ -8,7 +9,7 @@ const ZINES = [
       'images/vol1/page13.jpg','images/vol1/page14.jpg','images/vol1/page15.jpg',
       'images/vol1/page16.jpg','images/vol1/page17.jpg','images/vol1/page18.jpg',
       'images/vol1/page19.jpg','images/vol1/page20.jpg','images/vol1/page21.jpg',
-      'images/vol1/page22.jpg'
+      'images/vol1/page22.jpg','images/vol1/back.jpg'
     ] },
   { id:2, title:"DEEMS Vol.2", subtitle:"Volume 02", color1:"#1a1a1a", color2:"#444", accent:"#ffffff", frontImg:F2, backImg:B2 },
   { id:3, title:"DEEMS Vol.3", subtitle:"Volume 03", color1:"#ff1a5c", color2:"#cc0044", accent:"#ffe0eb", frontImg:F3, backImg:B3 },
@@ -267,65 +268,118 @@ function makeEdge(){
     }
   });
 
-  // ==================== READER ====================
+  // ==================== READER (SPREAD VIEW) ====================
   var reader = document.getElementById('reader');
-  var readerPageEl = document.getElementById('reader-page');
+  var readerSpread = document.getElementById('reader-spread');
+  var readerLeftImg = document.getElementById('reader-left');
+  var readerRightImg = document.getElementById('reader-right');
   var readerTitleEl = document.getElementById('reader-title');
   var readerCounterEl = document.getElementById('reader-counter');
   var readerPrevBtn = document.getElementById('reader-prev');
   var readerNextBtn = document.getElementById('reader-next');
   var readerCloseBtn = document.getElementById('reader-close');
   var readerPages = [];
-  var readerIdx = 0;
+  var spreads = []; // array of arrays, e.g. [[0], [1,2], [3,4], ...]
+  var spreadIdx = 0;
+
+  function buildSpreads(pages){
+    var s = [];
+    if(pages.length === 0) return s;
+    // First page (front cover) is always single
+    s.push([0]);
+    var i = 1;
+    while(i < pages.length){
+      if(i + 1 < pages.length){
+        // Last page (back cover) can be single
+        if(i + 1 === pages.length - 1){
+          s.push([i, i+1]);
+          i += 2;
+        } else {
+          s.push([i, i+1]);
+          i += 2;
+        }
+      } else {
+        // Odd page out at the end
+        s.push([i]);
+        i++;
+      }
+    }
+    return s;
+  }
 
   function openReader(zine){
     readerPages = zine.pages || [zine.frontImg, zine.backImg];
-    // You can add interior pages here later:
-    // readerPages = [zine.frontImg, zine.page1, zine.page2, ..., zine.backImg];
-    readerIdx = 0;
+    spreads = buildSpreads(readerPages);
+    spreadIdx = 0;
     readerTitleEl.textContent = zine.title;
-    showReaderPage();
+    showSpread();
     reader.classList.add('open');
     readerOpen = true;
     infoPanel.classList.remove('visible');
     hint.classList.remove('visible');
   }
 
-  function showReaderPage(){
-    readerPageEl.style.opacity = '0';
-    readerPageEl.style.transform = 'scale(0.95)';
+  function showSpread(){
+    var current = spreads[spreadIdx];
+    var isSingle = (current.length === 1);
+
+    // Fade out
+    readerSpread.style.opacity = '0';
+    readerSpread.style.transform = 'scale(0.95)';
+
     setTimeout(function(){
-      readerPageEl.src = readerPages[readerIdx];
-      readerPageEl.onload = function(){
-        readerPageEl.style.opacity = '1';
-        readerPageEl.style.transform = 'scale(1)';
-      };
+      if(isSingle){
+        readerSpread.className = 'single';
+        readerLeftImg.src = readerPages[current[0]];
+        readerRightImg.style.display = 'none';
+      } else {
+        readerSpread.className = 'spread';
+        readerLeftImg.src = readerPages[current[0]];
+        readerRightImg.src = readerPages[current[1]];
+        readerRightImg.style.display = 'block';
+      }
+
+      // Fade in once loaded
+      var loaded = 0;
+      var needed = isSingle ? 1 : 2;
+      function onLoad(){
+        loaded++;
+        if(loaded >= needed){
+          readerSpread.style.opacity = '1';
+          readerSpread.style.transform = 'scale(1)';
+        }
+      }
+      readerLeftImg.onload = onLoad;
+      readerRightImg.onload = onLoad;
+      // In case images are cached
+      if(readerLeftImg.complete) onLoad();
+      if(!isSingle && readerRightImg.complete) onLoad();
     }, 150);
-    var total = readerPages.length;
-    if(total <= 2){
-      var labels = ['Front Cover', 'Back Cover'];
-      readerCounterEl.textContent = labels[readerIdx] || (readerIdx+1+' / '+total);
+
+    // Counter: show page numbers
+    if(isSingle){
+      readerCounterEl.textContent = 'Page ' + (current[0]+1) + ' of ' + readerPages.length;
     } else {
-      readerCounterEl.textContent = (readerIdx+1) + ' / ' + total;
+      readerCounterEl.textContent = 'Pages ' + (current[0]+1) + '–' + (current[1]+1) + ' of ' + readerPages.length;
     }
-    readerPrevBtn.disabled = (readerIdx === 0);
-    readerNextBtn.disabled = (readerIdx === total - 1);
+
+    readerPrevBtn.disabled = (spreadIdx === 0);
+    readerNextBtn.disabled = (spreadIdx === spreads.length - 1);
   }
 
   readerPrevBtn.addEventListener('click', function(e){
     e.stopPropagation();
-    if(readerIdx > 0){ readerIdx--; showReaderPage(); }
+    if(spreadIdx > 0){ spreadIdx--; showSpread(); }
   });
   readerNextBtn.addEventListener('click', function(e){
     e.stopPropagation();
-    if(readerIdx < readerPages.length - 1){ readerIdx++; showReaderPage(); }
+    if(spreadIdx < spreads.length - 1){ spreadIdx++; showSpread(); }
   });
   readerCloseBtn.addEventListener('click', function(e){
     e.stopPropagation();
     closeReader();
   });
 
-  // Click on dark area closes reader
   reader.addEventListener('click', function(e){
     if(e.target === reader) closeReader();
   });
@@ -339,8 +393,8 @@ function makeEdge(){
   document.addEventListener('keydown', function(e){
     if(!readerOpen) return;
     if(e.key === 'Escape') closeReader();
-    if(e.key === 'ArrowLeft' && readerIdx > 0){ readerIdx--; showReaderPage(); }
-    if(e.key === 'ArrowRight' && readerIdx < readerPages.length-1){ readerIdx++; showReaderPage(); }
+    if(e.key === 'ArrowLeft' && spreadIdx > 0){ spreadIdx--; showSpread(); }
+    if(e.key === 'ArrowRight' && spreadIdx < spreads.length-1){ spreadIdx++; showSpread(); }
   });
 
   // ==================== ANIMATION ====================
