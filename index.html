@@ -1,50 +1,281 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DEEMS ZINE</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEEMS</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #050505; overflow: hidden; font-family: 'Courier New', monospace; cursor: default; }
+  canvas { display: block; position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0; }
+
+  #zoom-overlay {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none; opacity: 0; transition: opacity 0.4s ease;
+  }
+  #zoom-overlay.active { opacity: 1; pointer-events: auto; cursor: pointer; }
+
+  #zoom-word {
+    font-family: 'Courier New', monospace; font-weight: 900;
+    color: #fff; letter-spacing: 8px; text-transform: uppercase;
+    transform: scale(0.5); opacity: 0;
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+    text-shadow: 0 0 40px rgba(255,255,255,0.3), 0 0 80px rgba(255,255,255,0.1);
+  }
+  #zoom-overlay.active #zoom-word {
+    transform: scale(1); opacity: 1;
+  }
+
+  #zoom-hint {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    z-index: 11; font-size: 10px; letter-spacing: 4px; color: rgba(255,255,255,0);
+    text-transform: uppercase; transition: color 0.4s ease; pointer-events: none;
+  }
+  #zoom-overlay.active ~ #zoom-hint { color: rgba(255,255,255,0.35); }
+
+  #cursor-label {
+    position: fixed; z-index: 5; pointer-events: none;
+    font-family: 'Courier New', monospace; font-size: 11px;
+    letter-spacing: 3px; color: rgba(255,255,255,0.7);
+    text-transform: uppercase; opacity: 0; transition: opacity 0.2s ease;
+    text-shadow: 0 0 10px rgba(255,255,255,0.3);
+    transform: translate(16px, -20px);
+  }
+  #cursor-label.visible { opacity: 1; }
+</style>
 </head>
 <body>
 
-  <canvas id="bg-canvas"></canvas>
-  <div id="scanlines"></div>
-  <div id="three-container"></div>
+<canvas id="c"></canvas>
 
-  <div id="header">
-    <div>
-      <h1>DEEMS</h1>
-      <p class="sub">Independent digital zine archive</p>
-    </div>
-    <div>
-      <span class="count">9 volumes</span><span class="dot"></span>
-    </div>
-  </div>
+<div id="zoom-overlay">
+  <div id="zoom-word"></div>
+</div>
+<div id="zoom-hint">▸ click to enter ◂</div>
+<div id="cursor-label"></div>
 
-  <div id="info-panel">
-    <div id="info-box">
-      <div id="info-title"></div>
-      <div id="info-sub"></div>
-    </div>
-  </div>
+<script>
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d');
 
-  <p id="hint">▸ click a zine to read ◂</p>
+function resize(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
 
-  <div id="reader">
-    <button id="reader-close">✕</button>
-    <div id="reader-title"></div>
-    <img id="reader-page" src="" alt="Zine page" />
-    <div id="reader-nav">
-      <button class="reader-arrow" id="reader-prev">◂</button>
-      <span id="reader-counter"></span>
-      <button class="reader-arrow" id="reader-next">▸</button>
-    </div>
-  </div>
+// ==================== PAGE ROUTES ====================
+var PAGES = {
+  'DEEMS':      'zines.html',
+  'DISCOVER':   'discover.html',
+  'ENVISION':   'envision.html',
+  'EXPERIMENT': 'experiment.html',
+  'METAPHOR':   'metaphor.html',
+  'SYNTHESIS':  'synthesis.html'
+};
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="images.js"></script>
-  <script src="app.js"></script>
+var wordList = Object.keys(PAGES);
 
+// ==================== PARTICLES ====================
+var particles = [];
+var TOTAL = 90;
+
+for(var i = 0; i < TOTAL; i++){
+  var t = i / TOTAL;
+  particles.push({
+    word: wordList[i % wordList.length],
+    t: t,
+    angle: t * Math.PI * 8 + (Math.random() - 0.5) * 0.5,
+    speed: 0.3 + Math.random() * 0.15,
+    ySpeed: 0.1 + Math.random() * 0.05,
+    size: 10 + t * 14,
+    alpha: 0.15 + t * 0.55,
+    screenX: 0,
+    screenY: 0,
+    screenSize: 0,
+    visible: true
+  });
+}
+
+var time = 0;
+var mouseX = -999, mouseY = -999;
+var hoveredWord = null;
+var zoomedWord = null;
+
+var zoomOverlay = document.getElementById('zoom-overlay');
+var zoomWordEl = document.getElementById('zoom-word');
+var cursorLabel = document.getElementById('cursor-label');
+
+// ==================== HIT DETECTION ====================
+function getHoveredWord(){
+  var best = null;
+  var bestDist = Infinity;
+  for(var i = 0; i < particles.length; i++){
+    var p = particles[i];
+    if(!p.visible) continue;
+    var dx = mouseX - p.screenX;
+    var dy = mouseY - p.screenY;
+    var dist = Math.sqrt(dx*dx + dy*dy);
+    var threshold = p.screenSize * 2.5;
+    if(dist < threshold && dist < bestDist){
+      bestDist = dist;
+      best = p.word;
+    }
+  }
+  return best;
+}
+
+// ==================== EVENTS ====================
+window.addEventListener('mousemove', function(e){
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+
+  if(zoomedWord) return;
+
+  hoveredWord = getHoveredWord();
+  if(hoveredWord){
+    document.body.style.cursor = 'pointer';
+    cursorLabel.textContent = hoveredWord;
+    cursorLabel.style.left = mouseX + 'px';
+    cursorLabel.style.top = mouseY + 'px';
+    cursorLabel.classList.add('visible');
+  } else {
+    document.body.style.cursor = 'default';
+    cursorLabel.classList.remove('visible');
+  }
+});
+
+window.addEventListener('click', function(e){
+  if(zoomedWord){
+    // Second click — navigate
+    var url = PAGES[zoomedWord];
+    if(url) window.location.href = url;
+    return;
+  }
+
+  hoveredWord = getHoveredWord();
+  if(hoveredWord){
+    // First click — zoom in
+    zoomedWord = hoveredWord;
+    cursorLabel.classList.remove('visible');
+    document.body.style.cursor = 'default';
+
+    // Size the zoom word to fill the screen
+    var maxW = window.innerWidth * 0.85;
+    var testSize = 100;
+    ctx.font = '900 ' + testSize + 'px "Courier New", monospace';
+    var measured = ctx.measureText(zoomedWord).width;
+    var fontSize = Math.floor(testSize * (maxW / measured));
+    fontSize = Math.min(fontSize, window.innerHeight * 0.4);
+
+    zoomWordEl.style.fontSize = fontSize + 'px';
+    zoomWordEl.textContent = zoomedWord;
+    zoomOverlay.classList.add('active');
+  }
+});
+
+// Escape to back out of zoom
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape' && zoomedWord){
+    zoomedWord = null;
+    zoomOverlay.classList.remove('active');
+  }
+});
+
+// ==================== DRAW ====================
+function draw(){
+  var w = canvas.width, h = canvas.height;
+  var cx = w / 2, cy = h / 2;
+
+  // Fade trail
+  ctx.fillStyle = 'rgba(5, 5, 5, 0.12)';
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  for(var i = 0; i < particles.length; i++){
+    var p = particles[i];
+
+    // Update position
+    p.t += p.ySpeed * 0.003;
+    if(p.t > 1.15) p.t -= 1.3;
+    p.angle += p.speed * 0.015;
+
+    var t = p.t;
+    var clampT = Math.max(0, Math.min(1, t));
+
+    // Funnel shape
+    var radius = 20 + clampT * clampT * Math.min(w, h) * 0.38;
+    var y = cy - h * 0.4 + clampT * h * 0.8;
+    var angle = p.angle + time * 0.4;
+    var x = cx + Math.cos(angle) * radius;
+
+    // Depth for 3D feel
+    var depth = Math.sin(angle);
+    var depthAlpha = 0.25 + (depth + 1) * 0.375;
+    var depthScale = 0.7 + (depth + 1) * 0.2;
+
+    // Edge fade
+    var edgeFade = 1;
+    if(t < 0.05) edgeFade = t / 0.05;
+    if(t > 1.0) edgeFade = Math.max(0, 1 - (t - 1.0) / 0.15);
+
+    var finalAlpha = p.alpha * depthAlpha * edgeFade;
+    var finalSize = p.size * depthScale;
+
+    // Store for hit detection
+    p.screenX = x;
+    p.screenY = y;
+    p.screenSize = finalSize;
+    p.visible = (finalAlpha > 0.05);
+
+    if(!p.visible) continue;
+
+    // Highlight states
+    var isHighlighted = (p.word === hoveredWord && !zoomedWord);
+    var isZoomed = (p.word === zoomedWord);
+
+    if(isZoomed){
+      finalAlpha = Math.min(1, finalAlpha * 2.5);
+    } else if(isHighlighted){
+      finalAlpha = Math.min(1, finalAlpha * 1.8);
+    }
+
+    // Dim others when zoomed
+    if(zoomedWord && !isZoomed){
+      finalAlpha *= 0.3;
+    }
+
+    // Color
+    var hue, sat, light;
+    if(isHighlighted || isZoomed){
+      hue = 0; sat = 0; light = 100;
+    } else {
+      hue = (clampT * 40 + time * 15) % 360;
+      sat = 5; light = 75;
+    }
+
+    ctx.fillStyle = 'hsla(' + Math.round(hue) + ',' + sat + '%,' + light + '%,' + finalAlpha.toFixed(3) + ')';
+    ctx.font = '900 ' + Math.round(finalSize) + 'px "Courier New", monospace';
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.cos(angle) * 0.15);
+    ctx.fillText(p.word, 0, 0);
+    ctx.restore();
+  }
+
+  time += 0.016;
+  requestAnimationFrame(draw);
+}
+
+// Init
+ctx.fillStyle = '#050505';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+draw();
+</script>
 </body>
 </html>

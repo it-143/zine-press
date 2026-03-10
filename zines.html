@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DEEMS ZINE</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <canvas id="bg-canvas"></canvas>
+  <div id="scanlines"></div>
+  <div id="three-container"></div>
+
+  <div id="header">
+    <div>
+      <a href="index.html" style="text-decoration:none;pointer-events:auto;">
+        <h1>DEEMS</h1>
+      </a>
+      <p class="sub">Independent digital zine archive</p>
+    </div>
+    <div>
+      <span class="count">9 volumes</span><span class="dot"></span>
+    </div>
+  </div>
+
+  <div id="info-panel">
+    <div id="info-box">
+      <div id="info-title"></div>
+      <div id="info-sub"></div>
+    </div>
+  </div>
+
+  <p id="hint">▸ click a zine to read ◂</p>
+
+  <div id="reader">
+    <button id="reader-close">✕</button>
+    <div id="reader-title"></div>
+    <img id="reader-page" src="" alt="Zine page" />
+    <div id="reader-nav">
+      <button class="reader-arrow" id="reader-prev">◂</button>
+      <span id="reader-counter"></span>
+      <button class="reader-arrow" id="reader-next">▸</button>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="images.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
