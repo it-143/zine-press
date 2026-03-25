@@ -11,7 +11,7 @@ A web-based zine gallery featuring 3D spinning zine objects, an interactive torn
 DEEMS is an independent digital zine archive built as a single static site hosted on GitHub Pages. The project combines several visual and interactive elements:
 ![Tornado](screenshots/tornado.gif)
 - **Tornado Landing Page** — An animated canvas of words (Discover, Envision, Experiment, Metaphor, Synthesis, DEEMS) spiraling in a 3D funnel shape. Hover to highlight, click to zoom, click again to navigate into different sections of the site.
-![Zine Rack](screenshots/zinerack.gif)
+![Zine Rack](screenshots/zine.gif)
 - **3D Zine Gallery** — Nine volumes of DEEMS displayed as spinning 3D objects built with Three.js. Each zine has its actual front and back cover art mapped as textures. The renderer uses a low pixel ratio for a pixelated aesthetic with CRT-style scanlines.
 ![Cover Shot](screenshots/covershot.png)
 - **Magazine Reader** — Click any zine to open a full-screen reader. On desktop, interior pages display as two-page spreads like an open magazine. On mobile, pages show one at a time with swipe-to-flip support. All pages render crisp and clear, contrasting the pixelated gallery behind.
