@@ -87,4 +87,4 @@ Volumes without a `pages` array will still display their front and back covers i
 
 ---
 
-Built with Claude.
+Built with help from Claude
