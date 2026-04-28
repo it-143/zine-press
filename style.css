@@ -120,3 +120,27 @@ body { overflow: hidden; background: #050505; font-family: 'Courier New', monosp
   #header { padding: 18px 24px; }
   #header h1 { font-size: 26px; letter-spacing: 4px; }
 }
+
+#iteration-link {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #c8c0d0;
+  text-decoration: none;
+  border: 2px solid #c8c0d0;
+  border-radius: 999px;
+  padding: 10px 28px;
+  pointer-events: auto;
+  z-index: 100;
+  transition: background 0.2s, color 0.2s;
+}
+
+#iteration-link:hover {
+  background: #c8c0d0;
+  color: #1a1a2e;
+}
