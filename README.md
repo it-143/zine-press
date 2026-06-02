@@ -86,7 +86,3 @@ Volumes without a `pages` array will still display their front and back covers i
 - **Pixelated 3D, crisp reader:** The gallery deliberately renders at a low pixel ratio (0.4) with `image-rendering: pixelated` for a lo-fi aesthetic. The reader switches to `image-rendering: auto` so pages are sharp and readable.
 - **Projection-based click detection:** Three.js raycasting breaks with low pixel ratios, so click detection projects 3D positions to screen coordinates and checks proximity instead.
 - **Self-contained:** Cover textures are base64-encoded in `images.js` so the 3D gallery works without any image loading. Interior pages load from the `images/` folder on demand.
-
----
-
-Built with help from Claude
