@@ -50,7 +50,7 @@ body { overflow: hidden; background: #050505; font-family: 'Courier New', monosp
   mix-blend-mode: multiply;
 }
 
-#three-container { position: fixed; inset: 0; z-index: 5; }
+#three-container { position: fixed; inset: 0; z-index: 2; }
 
 /* Header */
 #header {
