@@ -109,59 +109,6 @@ const ZINES = [
     ] },
 ];
 
-// ==================== BREATHING BACKGROUND ====================
-(function(){
-  var canvas = document.getElementById('bg-canvas');
-  var ctx = canvas.getContext('2d');
-  var frame = 0;
-  var blobs = [];
-  for(var i=0;i<5;i++){
-    blobs.push({
-      x:Math.random(), y:Math.random(),
-      vx:(Math.random()-0.5)*0.0004, vy:(Math.random()-0.5)*0.0004,
-      hue:Math.random()*360, hueSpeed:(Math.random()-0.5)*0.3,
-      radius:0.3+Math.random()*0.4
-    });
-  }
-  var PX = 6;
-  function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
-  resize(); window.addEventListener('resize', resize);
-  function draw(){
-    var w=canvas.width, h=canvas.height;
-    var breath=Math.sin(frame*0.008)*0.5+0.5;
-    var breathSlow=Math.sin(frame*0.003)*0.5+0.5;
-    for(var b=0;b<blobs.length;b++){
-      blobs[b].x+=blobs[b].vx; blobs[b].y+=blobs[b].vy; blobs[b].hue+=blobs[b].hueSpeed;
-      if(blobs[b].x<-0.2||blobs[b].x>1.2) blobs[b].vx*=-1;
-      if(blobs[b].y<-0.2||blobs[b].y>1.2) blobs[b].vy*=-1;
-    }
-    var cols=Math.ceil(w/PX), rows=Math.ceil(h/PX);
-    for(var r=0;r<rows;r++){
-      for(var c=0;c<cols;c++){
-        var px=(c+0.5)/cols, py=(r+0.5)/rows;
-        var tH=0,tS=0,tL=0,tW=0;
-        for(var b=0;b<blobs.length;b++){
-          var dx=px-blobs[b].x,dy=py-blobs[b].y;
-          var dist=Math.sqrt(dx*dx+dy*dy);
-          var rad=blobs[b].radius*(0.8+breath*0.4);
-          var wt=Math.max(0,1-dist/rad), ww=wt*wt;
-          tH+=blobs[b].hue*ww; tS+=(50+breathSlow*30)*ww;
-          tL+=(15+breath*12)*ww; tW+=ww;
-        }
-        if(tW>0){tH/=tW;tS/=tW;tL/=tW;}else{tH=0;tS=0;tL=5;}
-        tL=Math.max(4,tL*0.7); tS=Math.min(80,tS);
-        ctx.fillStyle='hsl('+Math.round(tH%360)+','+Math.round(tS)+'%,'+Math.round(tL)+'%)';
-        ctx.fillRect(c*PX,r*PX,PX,PX);
-      }
-    }
-    ctx.fillStyle="rgba(0,0,0,0.06)";
-    for(var y=0;y<h;y+=3) ctx.fillRect(0,y,w,1);
-    frame++;
-    requestAnimationFrame(draw);
-  }
-  draw();
-})();
-
 // ==================== TEXTURE HELPERS ====================
 function loadImgTex(src){
   return new Promise(function(resolve){
